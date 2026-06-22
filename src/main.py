@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from src.agent.cognition import CognitionStore
 from src.agent.loop import (
     build_run_options,
     connect_env,
@@ -35,6 +36,11 @@ def parse_args() -> argparse.Namespace:
         help="Disable in-loop frame recording (Part B)",
     )
     p.add_argument("--episode", default=None, help="Recording episode folder name")
+    p.add_argument(
+        "--no-plan",
+        action="store_true",
+        help="Disable plan + memory (no memory.json / plan.json)",
+    )
     return p.parse_args()
 
 
@@ -55,25 +61,44 @@ def main() -> None:
     for i, pr in enumerate(prompts):
         mark = "*" if i == prompt_index else " "
         print(f"  {mark} [{i + 1}] {pr.label}: {pr.text[:60]}...")
-    print(f"LLM every {opts.control_cadence} frames | model={cfg.llm_model}")
+    print(f"LLM every {opts.control_cadence} frames | model={cfg.llm_model} | plan={opts.enable_plan}")
+
+    episode_name = args.episode or cfg.episode_name
+    episode_dir = cfg.recordings_dir / episode_name
 
     recorder: FrameRecorder | None = None
+    cognition: CognitionStore | None = None
+    if opts.enable_plan:
+        cognition = CognitionStore(
+            episode=episode_name,
+            goal=prompts[prompt_index],
+            episode_dir=episode_dir if opts.enable_recording else None,
+        )
+        if opts.enable_recording:
+            cognition.save()
     if opts.enable_recording:
-        episode_name = args.episode or cfg.episode_name
-        episode_dir = cfg.recordings_dir / episode_name
         recorder = FrameRecorder(
             episode_dir,
             target_fps=cfg.target_fps,
             scene=scene,
             control_cadence=opts.control_cadence,
             llm_model=cfg.llm_model,
+            enable_plan=opts.enable_plan,
         )
         recorder.write_episode_meta(prompts[prompt_index])
         print(f"Recording enabled -> {episode_dir}")
 
     env = connect_env(cfg, scene, opts.use_overhead, opts.kill_stale)
-    llm = AsyncLLMController(api_key=cfg.anthropic_api_key, model=cfg.llm_model)
-    run_agent_loop(cfg, opts, env, llm, prompts, prompt_index, recorder=recorder)
+    llm = AsyncLLMController(
+        api_key=cfg.anthropic_api_key,
+        model=cfg.llm_model,
+        plan_mode=opts.enable_plan,
+    )
+    run_agent_loop(
+        cfg, opts, env, llm, prompts, prompt_index,
+        recorder=recorder,
+        cognition=cognition,
+    )
 
 
 if __name__ == "__main__":

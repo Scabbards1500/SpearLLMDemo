@@ -101,6 +101,12 @@ class SpearEnv:
         self._overhead_camera: Any = None
         self._frame_index = 0
         self._action_in_effect = WheelAction()
+        self._spawn_settled = False
+
+    @property
+    def spawn_settled(self) -> bool:
+        """True once spawn physics have settled (ball on ground)."""
+        return self._spawn_settled
 
     @property
     def frame_index(self) -> int:
@@ -159,6 +165,33 @@ class SpearEnv:
         if self.overhead_camera:
             self._spawn_overhead_camera()
         self._instance.step(num_frames=self.warm_up_frames)
+        self._settle_on_ground()
+
+    def _settle_on_ground(self, max_frames: int = 90) -> None:
+        """Step physics until the agent rests on the floor (before the agent loop)."""
+        assert self._instance is not None and self._game is not None and self._root is not None
+        last_z: float | None = None
+        stable = 0
+        for i in range(max_frames):
+            with self._instance.begin_frame():
+                self._gameplay_statics.SetGamePaused(bPaused=False)
+                if self._overhead_camera is not None:
+                    agent_loc = _as_xyz_dict(self._root.K2_GetComponentLocation())
+                    self._update_overhead_camera(agent_loc)
+            with self._instance.end_frame():
+                self._gameplay_statics.SetGamePaused(bPaused=True)
+                z = _as_xyz_dict(self._root.K2_GetComponentLocation())["Z"]
+            if last_z is not None and abs(z - last_z) < 1.5:
+                stable += 1
+                if stable >= 4:
+                    spear.log(f"Agent settled on ground at Z={z:.1f} ({i + 1} settle steps)")
+                    self._spawn_settled = True
+                    return
+            else:
+                stable = 0
+            last_z = z
+        spear.log("Settle timeout; agent loop will wait for landing before LLM")
+        self._spawn_settled = False
 
     def _open_level(self, level_name: str) -> None:
         assert self._instance is not None and self._game is not None

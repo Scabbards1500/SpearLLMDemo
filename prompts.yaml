@@ -3,21 +3,27 @@
 default_index: 0
 
 prompts:
-  - id: wall_table
-    label: "Table against wall"
+  - id: nearest_table
+    label: "Nearest table"
     text: >
-      You are a sphere robot in a small debug house. Navigate to the table
-      that is pushed against the wall. Drive forward when the table is ahead;
-      turn when you need to align. Stop when you are close to that table.
+      You are a sphere robot in an indoor scene. Your goal is the nearest table
+      to your current position. If you see multiple tables, go to the closest one
+      in front of you or the one you can reach soonest — not a far table.
+      If no table is visible, explore the room: drive forward slowly and turn
+      at corners until a table appears. When you see a table, steer toward the
+      nearest one. Avoid walls and furniture. When close to the table, stop and
+      set arrived=true in your JSON response (left=0, right=0).
 
   - id: explore
     label: "Explore room"
     text: >
-      Explore the debug house slowly. Avoid getting stuck on walls or furniture.
-      Prefer open floor space and gentle turns.
+      Explore the debug house slowly. Keep moving: alternate gentle forward
+      motion with turns to cover the room. Avoid getting stuck on walls or
+      furniture. Prefer open floor space.
 
   - id: opposite_corner
     label: "Opposite corner"
     text: >
       Move from your current area toward the opposite corner of the room,
-      staying on the floor and avoiding obstacles.
+      staying on the floor and avoiding obstacles. If the path is unclear,
+      explore forward and turn until you find open space toward that corner.

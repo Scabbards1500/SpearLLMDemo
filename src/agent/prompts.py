@@ -43,7 +43,7 @@ def load_prompts(config_path: Path | None = None) -> list[GoalPrompt]:
             GoalPrompt(
                 prompt_id="default",
                 label="Default",
-                text="Navigate toward the table against the wall.",
+                text="Navigate to the nearest table in the scene.",
             )
         )
     return prompts

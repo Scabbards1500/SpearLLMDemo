@@ -18,8 +18,15 @@ def draw_agent_hud(
     frame_index: int,
     view_mode: str,
     llm_busy: bool,
+    *,
+    arrived: bool = False,
 ) -> None:
-    status = "LLM thinking..." if llm_busy else "LLM idle"
+    if arrived:
+        status = "ARRIVED"
+    elif llm_busy:
+        status = "LLM thinking..."
+    else:
+        status = "LLM idle"
     view = "AGENT" if view_mode == VIEW_AGENT else "OVERHEAD"
     lines = [
         f"[{view}] {goal.label}",
@@ -34,7 +41,7 @@ def draw_agent_hud(
             (12, 28 + i * 26),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.58,
-            (0, 255, 255) if i == 0 else (0, 255, 0),
+            (0, 255, 255) if i == 0 else ((0, 200, 255) if arrived and i == 1 else (0, 255, 0)),
             2,
             cv2.LINE_AA,
         )

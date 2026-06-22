@@ -54,9 +54,9 @@ recordings/          # Output bundles (Part B)
 
 ## Episode goal
 
-Navigate the debug house per natural-language prompt (default: reach the table against the wall). See `prompts.yaml`.
+Navigate the scene per natural-language prompt (default: reach the **nearest table**). See `prompts.yaml`.
 
-**Termination:** episode ends when `MAX_FRAMES` is reached (default 900 frames / 30 s at 30 fps), or when you press Q/Esc in the OpenCV window.
+**Termination:** LLM sets `arrived=true` when at the goal (agent stops, prints `arrived`), or episode ends at `MAX_FRAMES`, or Q/Esc in OpenCV.
 
 ## Recording bundle (Part B)
 
@@ -67,8 +67,11 @@ Each run writes to `recordings/<episode_name>/`:
 | `frames/0.png` | Egocentric RGB, one file per simulation frame |
 | `manifest.jsonl` | One JSON line per frame: `frame_idx`, `t`, `action`, `location`, `rotation`, `image`, `action_id` |
 | `episode_meta.json` | Scene, spawn, goal, fps, cadence (optional metadata) |
+| `memory.json` | Episodic memory snapshot (when `PLAN=1`) |
+| `plan.json` | Current navigation plan (when `PLAN=1`) |
 
 Recording is on by default. Disable with `--no-record` or `RECORDING=0` in `.env`.
+Plan + memory are on by default (`PLAN=1`). Disable with `--no-plan` or `PLAN=0`.
 
 ## Controls (OpenCV window)
 

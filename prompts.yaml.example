@@ -3,12 +3,12 @@
 default_index: 0
 
 prompts:
-  - id: wall_table
-    label: "Table against wall"
+  - id: nearest_table
+    label: "Nearest table"
     text: >
-      You are a sphere robot in a small debug house. Navigate to the table
-      that is pushed against the wall. Drive forward when the table is ahead;
-      turn when you need to align. Stop when you are close to that table.
+      You are a sphere robot in an indoor scene. Navigate to the nearest table.
+      If several tables are visible, choose the closest one you can reach.
+      Explore until a table appears, then approach it and stop when close.
 
   - id: explore
     label: "Explore room"

@@ -32,6 +32,7 @@ class FrameRecorder:
         scene: ScenePreset,
         control_cadence: int,
         llm_model: str,
+        enable_plan: bool = True,
     ) -> None:
         self.episode_dir = Path(episode_dir)
         self.frames_dir = self.episode_dir / "frames"
@@ -42,6 +43,7 @@ class FrameRecorder:
         self.scene = scene
         self.control_cadence = control_cadence
         self.llm_model = llm_model
+        self.enable_plan = enable_plan
 
         self.episode_dir.mkdir(parents=True, exist_ok=True)
         self.frames_dir.mkdir(parents=True, exist_ok=True)
@@ -63,6 +65,7 @@ class FrameRecorder:
             "target_fps": self.target_fps,
             "control_cadence": self.control_cadence,
             "llm_model": self.llm_model,
+            "plan_enabled": self.enable_plan,
         }
         self.meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
 

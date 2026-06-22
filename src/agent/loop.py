@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import cv2
 
+from src.agent.cognition import CognitionStore, LandDetector, StuckDetector
 from src.agent.env import SpearEnv, WheelAction
 from src.agent.hud import VIEW_AGENT, VIEW_OVERHEAD, draw_agent_hud
 from src.agent.llm import AsyncLLMController
@@ -27,6 +28,7 @@ class AgentRunOptions:
     delay_ms: int
     kill_stale: bool
     enable_recording: bool
+    enable_plan: bool
 
 
 def build_run_options(cfg: Config, args) -> AgentRunOptions:
@@ -39,6 +41,7 @@ def build_run_options(cfg: Config, args) -> AgentRunOptions:
         delay_ms=args.delay_ms,
         kill_stale=not args.no_kill_stale,
         enable_recording=cfg.enable_recording and not args.no_record,
+        enable_plan=cfg.plan and not args.no_plan,
     )
 
 
@@ -82,15 +85,23 @@ def run_agent_loop(
     prompts: list[GoalPrompt],
     prompt_index: int,
     recorder: FrameRecorder | None = None,
+    cognition: CognitionStore | None = None,
 ) -> None:
     action_in_effect = WheelAction(left=0.0, right=0.0)
     action_id = 0
     llm_decision_count = 0
     view_mode = VIEW_AGENT
-    goal_changed = True
-    last_llm_frame = -opts.control_cadence
+    goal_changed = False
+    last_llm_frame = 0
+    first_llm_sent = False
+    land_detector = LandDetector(already_landed=env.spawn_settled)
+    stuck_detector = StuckDetector() if cognition is not None else None
+    pending_stuck_hint: str | None = None
+    arrived = False
 
     print("Running. Focus OpenCV window for keys 1/2/3/Enter/Q.")
+    if cognition is not None:
+        print("Plan + memory enabled (memory.json / plan.json in episode dir).")
     try:
         for frame in range(opts.max_frames):
             obs = env.step(action_in_effect)
@@ -108,6 +119,11 @@ def run_agent_loop(
                         if idx < len(prompts):
                             prompt_index = idx
                             goal_changed = True
+                            arrived = False
+                            first_llm_sent = False
+                            land_detector.reset()
+                            if cognition is not None:
+                                cognition.reset_goal(prompts[prompt_index], obs.frame_index)
                             print(f"Prompt -> [{idx + 1}] {prompts[prompt_index].label}")
                     elif key in (13, 10):
                         view_mode = VIEW_OVERHEAD if view_mode == VIEW_AGENT else VIEW_AGENT
@@ -115,25 +131,73 @@ def run_agent_loop(
                         print("Stopped by user.")
                         break
 
-            if (goal_changed or frame - last_llm_frame >= opts.control_cadence) and not llm.busy:
-                llm.request(obs, goal)
-                last_llm_frame = frame
-                goal_changed = False
-                print(f"frame {obs.frame_index}: LLM request ({goal.label})")
+            if not arrived and stuck_detector is not None:
+                stuck_hint = stuck_detector.update(obs, action_in_effect)
+                if stuck_hint:
+                    pending_stuck_hint = stuck_hint
+                    dead_id = cognition.register_code_dead_end(obs, stuck_hint)
+                    print(f"frame {obs.frame_index}: stuck -> registered {dead_id}")
 
-            new_action, err = llm.poll()
-            if err is not None:
-                print(f"LLM error: {err}")
-            if new_action is not None:
-                if llm_decision_count > 0:
-                    action_id += 1
-                llm_decision_count += 1
-                action_in_effect = new_action
-                env.set_action(action_in_effect)
-                print(
-                    f"frame {obs.frame_index}: new action "
-                    f"L={action_in_effect.left:.2f} R={action_in_effect.right:.2f}"
-                )
+            if not arrived:
+                decision, err = llm.poll()
+                if err is not None:
+                    print(f"LLM error: {err}")
+                if decision is not None:
+                    if llm_decision_count > 0:
+                        action_id += 1
+                    llm_decision_count += 1
+                    action_in_effect = decision.action
+                    if decision.arrived:
+                        arrived = True
+                        action_in_effect = WheelAction(left=0.0, right=0.0)
+                    env.set_action(action_in_effect)
+                    if cognition is not None:
+                        cognition.apply_decision(
+                            action_id=action_id,
+                            frame_idx=obs.frame_index,
+                            obs=obs,
+                            action=action_in_effect,
+                            memory_update=decision.memory_update,
+                            plan_patch=decision.plan,
+                            arrived=decision.arrived,
+                        )
+                    if decision.arrived:
+                        print(f"frame {obs.frame_index}: arrived")
+                    elif cognition is not None:
+                        phase = cognition.plan.get("phase", "?")
+                        print(
+                            f"frame {obs.frame_index}: new action "
+                            f"L={action_in_effect.left:.2f} R={action_in_effect.right:.2f} "
+                            f"phase={phase}"
+                        )
+                    else:
+                        print(
+                            f"frame {obs.frame_index}: new action "
+                            f"L={action_in_effect.left:.2f} R={action_in_effect.right:.2f}"
+                        )
+                    pending_stuck_hint = None
+
+                just_landed = land_detector.update(obs)
+                need_llm = False
+                if goal_changed:
+                    need_llm = land_detector.landed
+                elif just_landed or (land_detector.landed and not first_llm_sent):
+                    need_llm = True
+                elif land_detector.landed and frame - last_llm_frame >= opts.control_cadence:
+                    need_llm = True
+
+                if need_llm and not llm.busy:
+                    cognition_context = None
+                    if cognition is not None:
+                        cognition_context = cognition.context_for_llm(pending_stuck_hint)
+                    llm.request(obs, goal, cognition_context=cognition_context)
+                    last_llm_frame = frame
+                    goal_changed = False
+                    first_llm_sent = True
+                    if just_landed:
+                        print(f"frame {obs.frame_index}: landed -> LLM request ({goal.label})")
+                    else:
+                        print(f"frame {obs.frame_index}: LLM request ({goal.label})")
 
             if opts.show_opencv:
                 if view_mode == VIEW_AGENT:
@@ -144,7 +208,13 @@ def run_agent_loop(
                         obs.rotation["Yaw"],
                     )
                 draw_agent_hud(
-                    display, goal, action_in_effect, obs.frame_index, view_mode, llm.busy
+                    display,
+                    goal,
+                    action_in_effect,
+                    obs.frame_index,
+                    view_mode,
+                    llm.busy,
+                    arrived=arrived,
                 )
                 cv2.imshow("llm_agent", display)
 
