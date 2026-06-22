@@ -84,6 +84,8 @@ def run_agent_loop(
     recorder: FrameRecorder | None = None,
 ) -> None:
     action_in_effect = WheelAction(left=0.0, right=0.0)
+    action_id = 0
+    llm_decision_count = 0
     view_mode = VIEW_AGENT
     goal_changed = True
     last_llm_frame = -opts.control_cadence
@@ -95,7 +97,7 @@ def run_agent_loop(
             goal = prompts[prompt_index]
 
             if recorder is not None:
-                recorder.record_frame(obs, action_in_effect, goal)
+                recorder.record_frame(obs, action_in_effect, action_id)
 
             if opts.show_opencv:
                 key = cv2.waitKey(opts.delay_ms)
@@ -123,6 +125,9 @@ def run_agent_loop(
             if err is not None:
                 print(f"LLM error: {err}")
             if new_action is not None:
+                if llm_decision_count > 0:
+                    action_id += 1
+                llm_decision_count += 1
                 action_in_effect = new_action
                 env.set_action(action_in_effect)
                 print(

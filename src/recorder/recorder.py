@@ -38,14 +38,16 @@ class FrameRecorder:
         self.manifest_path = self.episode_dir / "manifest.jsonl"
         self.meta_path = self.episode_dir / "episode_meta.json"
         self.target_fps = target_fps
+        self.dt = 1.0 / target_fps
         self.scene = scene
         self.control_cadence = control_cadence
         self.llm_model = llm_model
 
+        self.episode_dir.mkdir(parents=True, exist_ok=True)
         self.frames_dir.mkdir(parents=True, exist_ok=True)
-        self._manifest = self.manifest_path.open("a", encoding="utf-8")
+        self._manifest = self.manifest_path.open("w", encoding="utf-8")
         self._records_written = 0
-        self._expected_frame_index: int | None = None
+        self._expected_frame_idx: int | None = None
 
     def write_episode_meta(self, goal: GoalPrompt) -> None:
         meta = {
@@ -68,35 +70,37 @@ class FrameRecorder:
         self,
         obs: Observation,
         action_in_effect: WheelAction,
-        goal: GoalPrompt,
+        action_id: int,
     ) -> None:
-        if self._expected_frame_index is None:
-            self._expected_frame_index = obs.frame_index
-        elif obs.frame_index != self._expected_frame_index:
+        frame_idx = obs.frame_index
+        if self._expected_frame_idx is None:
+            self._expected_frame_idx = frame_idx
+        elif frame_idx != self._expected_frame_idx:
             raise RuntimeError(
-                f"Frame gap detected: expected {self._expected_frame_index}, got {obs.frame_index}"
+                f"Frame gap detected: expected {self._expected_frame_idx}, got {frame_idx}"
             )
 
-        rel_image = f"frames/{obs.frame_index:06d}.jpg"
+        rel_image = f"frames/{frame_idx}.png"
         image_path = self.episode_dir / rel_image
         bgr = _rgb_to_bgr(obs.rgb)
-        if not cv2.imwrite(str(image_path), bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 92]):
+        if not cv2.imwrite(str(image_path), bgr):
             raise RuntimeError(f"Failed to write frame image: {image_path}")
 
+        loc = obs.location
+        rot = obs.rotation
         record: dict[str, Any] = {
-            "frame_index": obs.frame_index,
-            "sim_time_s": obs.frame_index / self.target_fps,
-            "image": rel_image.replace("\\", "/"),
-            "location": dict(obs.location),
-            "rotation": dict(obs.rotation),
+            "frame_idx": frame_idx,
+            "t": round(frame_idx * self.dt, 4),
             "action": {"left": action_in_effect.left, "right": action_in_effect.right},
-            "goal_id": goal.prompt_id,
-            "goal_label": goal.label,
+            "location": [loc["X"], loc["Y"], loc["Z"]],
+            "rotation": [rot["Pitch"], rot["Yaw"], rot["Roll"]],
+            "image": rel_image,
+            "action_id": action_id,
         }
         self._manifest.write(json.dumps(record, separators=(",", ":")) + "\n")
         self._manifest.flush()
         self._records_written += 1
-        self._expected_frame_index = obs.frame_index + 1
+        self._expected_frame_idx = frame_idx + 1
 
     @property
     def records_written(self) -> int:
@@ -104,12 +108,3 @@ class FrameRecorder:
 
     def close(self) -> None:
         self._manifest.close()
-        summary = {
-            "total_frames": self._records_written,
-            "manifest": "manifest.jsonl",
-            "frames_dir": "frames/",
-        }
-        (self.episode_dir / "summary.json").write_text(
-            json.dumps(summary, indent=2),
-            encoding="utf-8",
-        )

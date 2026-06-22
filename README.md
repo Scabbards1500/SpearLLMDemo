@@ -64,10 +64,9 @@ Each run writes to `recordings/<episode_name>/`:
 
 | Path | Content |
 |------|---------|
-| `frames/000000.jpg` | Egocentric RGB, one file per simulation frame |
-| `manifest.jsonl` | One JSON line per frame: pose, action-in-effect, image path |
-| `episode_meta.json` | Scene, spawn, goal, fps, cadence |
-| `summary.json` | Total frame count |
+| `frames/0.png` | Egocentric RGB, one file per simulation frame |
+| `manifest.jsonl` | One JSON line per frame: `frame_idx`, `t`, `action`, `location`, `rotation`, `image`, `action_id` |
+| `episode_meta.json` | Scene, spawn, goal, fps, cadence (optional metadata) |
 
 Recording is on by default. Disable with `--no-record` or `RECORDING=0` in `.env`.
 
