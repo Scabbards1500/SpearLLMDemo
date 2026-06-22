@@ -1,0 +1,16 @@
+# SPEAR runtime config - paths for this machine.
+# ASCII only (no smart quotes) for GBK Windows locales.
+
+SPEAR:
+  LAUNCH_MODE: "game"
+  INSTANCE:
+    GAME_EXECUTABLE: "D:\\dev\\spear\\cpp\\unreal_projects\\SpearSim\\Standalone-Development\\Windows\\SpearSim.exe"
+    COMMAND_LINE_ARGS:
+      resx: 1280
+      resy: 720
+
+# Start directly in debug_0000 (skip apartment default map at launch).
+SP_SERVICES:
+  INITIALIZE_ENGINE_SERVICE:
+    OVERRIDE_GAME_DEFAULT_MAP: True
+    GAME_DEFAULT_MAP: "/Game/SPEAR/Scenes/debug_0000/Maps/debug_0000.debug_0000"

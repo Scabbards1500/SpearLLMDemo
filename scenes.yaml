@@ -1,0 +1,9 @@
+# Copy to scenes.yaml and tune spawn if needed (ASCII only).
+
+debug_house:
+  level: /Game/SPEAR/Scenes/debug_0000/Maps/debug_0000.debug_0000
+  description: Debug house - sphere spawn at bottom-right corner
+  spawn:
+    X: 180.0
+    Y: 420.0
+    Z: 110.0

@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+
+# Environment & secrets
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# SPEAR / Unreal (exclude from zip per assignment)
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+
+# Recordings & demo (large outputs — uncomment to track samples in git)
+# recordings/
+# demo/*.mp4
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,20 @@
+# Copy to user_config.yaml and set paths for your machine.
+# Keep this file ASCII-only (no smart quotes/em-dashes) for GBK Windows locales.
+
+SPEAR:
+  LAUNCH_MODE: "game"
+  INSTANCE:
+    GAME_EXECUTABLE: "D:\\dev\\spear\\cpp\\unreal_projects\\SpearSim\\Standalone-Development\\Windows\\SpearSim.exe"
+    COMMAND_LINE_ARGS:
+      resx: 1280
+      resy: 720
+
+  # Scene is opened via SP_SERVICES.GAME_DEFAULT_MAP below (or in code).
+  # /Game/SPEAR/Scenes/apartment_0000/Maps/apartment_0000.apartment_0000
+  # /Game/SPEAR/Scenes/debug_0000/Maps/debug_0000.debug_0000
+
+# Launch straight into debug house (no apartment flash on startup).
+SP_SERVICES:
+  INITIALIZE_ENGINE_SERVICE:
+    OVERRIDE_GAME_DEFAULT_MAP: True
+    GAME_DEFAULT_MAP: "/Game/SPEAR/Scenes/debug_0000/Maps/debug_0000.debug_0000"

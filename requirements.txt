@@ -1,0 +1,19 @@
+# SPEAR simulator client — install from github.com/spear-sim/spear (NOT `pip install spear`)
+#
+#   git clone https://github.com/spear-sim/spear path\to\spear --recurse-submodules
+#   pip install -e path\to\spear\python
+#
+# PyPI 包名是 spear-sim，但目前未发布到 PyPI；`pip install spear` 会装错包。
+# 安装后还需按官方 getting_started 编译 spear_ext 等（见 README）。
+
+# LLM
+anthropic
+
+# Vision / I/O
+opencv-python
+numpy
+Pillow
+
+# Config
+python-dotenv
+pyyaml
