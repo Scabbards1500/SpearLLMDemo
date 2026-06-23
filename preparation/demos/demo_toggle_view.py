@@ -37,7 +37,7 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--frames", type=int, default=600)
     p.add_argument("--delay-ms", type=int, default=1)
-    p.add_argument("--overhead-height", type=float, default=2800.0)
+    p.add_argument("--overhead-height", type=float, default=900.0)
     args = p.parse_args()
 
     cfg = Config()

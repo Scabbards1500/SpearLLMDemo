@@ -51,6 +51,7 @@ class Config:
 
     show_opencv: bool = os.getenv("SHOW_OPENCV", "1") not in ("0", "false", "False")
     overhead_camera: bool = os.getenv("OVERHEAD_CAMERA", "1") not in ("0", "false", "False")
+    overhead_height: float = float(os.getenv("OVERHEAD_HEIGHT", "900"))
     enable_recording: bool = os.getenv("RECORDING", "1") not in ("0", "false", "False")
     plan: bool = os.getenv("PLAN", "1") not in ("0", "false", "False")
 

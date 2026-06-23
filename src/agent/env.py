@@ -79,7 +79,7 @@ class SpearEnv:
         spawn_location: dict[str, float] | None = None,
         warm_up_frames: int = 2,
         overhead_camera: bool = False,
-        overhead_height: float = 2800.0,
+        overhead_height: float = 900.0,
     ) -> None:
         self.user_config = Path(user_config)
         self.scene_level = scene_level

@@ -11,6 +11,16 @@ import numpy as np
 AGENT_ARROW_COLOR = (0, 0, 255)
 
 
+def _yaw_to_image_delta(yaw_deg: float, length: float) -> tuple[float, float]:
+    """Map Unreal ground yaw to OpenCV pixel offset for a world-aligned top-down view.
+
+    Unreal: yaw=0° faces world +X; overhead camera uses pitch=-90°, yaw=0° (fixed north-up).
+    On the capture, world +X ≈ image up, world +Y ≈ image right; OpenCV y grows downward.
+    """
+    rad = math.radians(float(yaw_deg))
+    return length * math.sin(rad), -length * math.cos(rad)
+
+
 def draw_agent_arrow(
     image: np.ndarray,
     yaw_deg: float,
@@ -19,20 +29,20 @@ def draw_agent_arrow(
     length: int = 55,
     color: tuple[int, int, int] = AGENT_ARROW_COLOR,
     thickness: int = 3,
-    label: str = "agent",
+    label: str = "heading",
 ) -> np.ndarray:
-    """Draw a red heading arrow on a top-down map image (agent at center).
+    """Draw a red heading arrow (Unreal yaw on the ground plane).
 
-    Overhead camera follows the agent, so the marker is drawn at the image center.
-    Yaw follows Unreal convention (0 deg ~ +X world, increases toward +Y).
+    Used on the overhead follow-cam: agent stays at image center; arrow shows
+    which way the robot will drive (+X local / differential-drive forward).
     """
     out = image.copy()
     h, w = out.shape[:2]
     cx, cy = center if center is not None else (w // 2, h // 2)
 
-    rad = math.radians(float(yaw_deg))
-    tip_x = int(cx + length * math.cos(rad))
-    tip_y = int(cy + length * math.sin(rad))
+    dx, dy = _yaw_to_image_delta(yaw_deg, length)
+    tip_x = int(cx + dx)
+    tip_y = int(cy + dy)
 
     cv2.circle(out, (cx, cy), 8, color, -1, lineType=cv2.LINE_AA)
     cv2.arrowedLine(
@@ -65,7 +75,7 @@ def draw_agent_compass(
     margin: int = 12,
     color: tuple[int, int, int] = AGENT_ARROW_COLOR,
 ) -> np.ndarray:
-    """Small heading compass in the corner of the egocentric view."""
+    """Mini top-down heading dial in the egocentric window (world yaw, not image depth)."""
     out = image.copy()
     h, _w = out.shape[:2]
     cx = margin + size // 2

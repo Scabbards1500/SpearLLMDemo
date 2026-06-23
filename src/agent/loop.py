@@ -8,7 +8,7 @@ import cv2
 
 from src.agent.cognition import CognitionStore, LandDetector, StuckDetector
 from src.agent.env import SpearEnv, WheelAction
-from src.agent.hud import VIEW_AGENT, VIEW_OVERHEAD, draw_agent_hud
+from src.agent.hud import draw_agent_hud, draw_overhead_hud
 from src.agent.llm import AsyncLLMController
 from src.agent.prompts import GoalPrompt, default_prompt_index, load_prompts
 from src.agent.scenes import ScenePreset, load_scene_preset
@@ -63,6 +63,7 @@ def connect_env(cfg: Config, scene: ScenePreset, use_overhead: bool, kill_stale:
         scene_level=scene.level,
         spawn_location=scene.spawn,
         overhead_camera=use_overhead,
+        overhead_height=cfg.overhead_height,
     )
     print("Connecting to SpearSim...")
     try:
@@ -90,7 +91,6 @@ def run_agent_loop(
     action_in_effect = WheelAction(left=0.0, right=0.0)
     action_id = 0
     llm_decision_count = 0
-    view_mode = VIEW_AGENT
     goal_changed = False
     last_llm_frame = 0
     first_llm_sent = False
@@ -98,8 +98,9 @@ def run_agent_loop(
     stuck_detector = StuckDetector() if cognition is not None else None
     pending_stuck_hint: str | None = None
     arrived = False
+    windows_placed = False
 
-    print("Running. Focus OpenCV window for keys 1/2/3/Enter/Q.")
+    print("Running. OpenCV: agent + overhead windows. Keys 1/2/3/Q (focus either window).")
     if cognition is not None:
         print("Plan + memory enabled (memory.json / plan.json in episode dir).")
     try:
@@ -125,8 +126,6 @@ def run_agent_loop(
                             if cognition is not None:
                                 cognition.reset_goal(prompts[prompt_index], obs.frame_index)
                             print(f"Prompt -> [{idx + 1}] {prompts[prompt_index].label}")
-                    elif key in (13, 10):
-                        view_mode = VIEW_OVERHEAD if view_mode == VIEW_AGENT else VIEW_AGENT
                     elif k in (27, ord("q"), ord("Q")):
                         print("Stopped by user.")
                         break
@@ -200,23 +199,35 @@ def run_agent_loop(
                         print(f"frame {obs.frame_index}: LLM request ({goal.label})")
 
             if opts.show_opencv:
-                if view_mode == VIEW_AGENT:
-                    display = draw_agent_compass(obs.rgb.copy(), obs.rotation["Yaw"])
-                else:
-                    display = draw_agent_arrow(
-                        (obs.overhead_rgb or obs.rgb).copy(),
-                        obs.rotation["Yaw"],
-                    )
+                agent_display = draw_agent_compass(obs.rgb.copy(), obs.rotation["Yaw"])
                 draw_agent_hud(
-                    display,
+                    agent_display,
                     goal,
                     action_in_effect,
                     obs.frame_index,
-                    view_mode,
                     llm.busy,
                     arrived=arrived,
                 )
-                cv2.imshow("llm_agent", display)
+                cv2.imshow("llm_agent", agent_display)
+
+                if opts.use_overhead and obs.overhead_rgb is not None:
+                    overhead_display = draw_agent_arrow(
+                        obs.overhead_rgb.copy(),
+                        obs.rotation["Yaw"],
+                    )
+                    draw_overhead_hud(
+                        overhead_display,
+                        goal,
+                        action_in_effect,
+                        obs.frame_index,
+                        obs.location,
+                        arrived=arrived,
+                    )
+                    cv2.imshow("llm_overhead", overhead_display)
+                    if not windows_placed:
+                        cv2.moveWindow("llm_agent", 40, 40)
+                        cv2.moveWindow("llm_overhead", 700, 40)
+                        windows_placed = True
 
             if frame % 30 == 0:
                 loc = obs.location
