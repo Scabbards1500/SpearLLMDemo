@@ -130,13 +130,6 @@ Each run writes to `recordings/<episode_name>/`:
 Recording is on by default. Disable with `--no-record` or `RECORDING=0` in `.env`.
 Plan + memory are on by default (`PLAN=1`). Disable with `--no-plan` or `PLAN=0`.
 
-## Controls (OpenCV window)
-
-| Key | Action |
-|-----|--------|
-| 1/2/3 | Switch navigation prompt |
-| Enter | Toggle agent / overhead view |
-| Q/Esc | Quit |
 
 ## External dependencies
 
