@@ -16,16 +16,21 @@ from dotenv import load_dotenv
 load_dotenv(ROOT / ".env")
 
 key = os.getenv("ANTHROPIC_API_KEY", "")
+base_url = os.getenv("ANTHROPIC_BASE_URL", "").strip() or None
 model = os.getenv("CLAUDE_TEST_MODEL") or os.getenv("LLM_MODEL", "claude-opus-4-6")
 if not model.startswith("claude"):
     model = "claude-opus-4-6"
 print(f"API key present: {bool(key) and len(key) > 10}")
+print(f"Base URL: {base_url or '(anthropic SDK default)'}")
 print(f"Model: {model}")
 
 try:
     import anthropic
 
-    client = anthropic.Anthropic()
+    client_kwargs: dict[str, str] = {"api_key": key}
+    if base_url:
+        client_kwargs["base_url"] = base_url
+    client = anthropic.Anthropic(**client_kwargs)
     t0 = time.perf_counter()
     msg = client.messages.create(
         model=model,

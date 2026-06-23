@@ -8,14 +8,19 @@ import cv2
 
 from src.agent.cognition import CognitionStore, LandDetector, StuckDetector
 from src.agent.env import SpearEnv, WheelAction
-from src.agent.hud import draw_agent_hud, draw_overhead_hud
+from src.agent.hud import draw_agent_hud, draw_overhead_hud, normalize_nav_phase
 from src.agent.llm import AsyncLLMController
 from src.agent.prompts import GoalPrompt, default_prompt_index, load_prompts
 from src.agent.scenes import ScenePreset, load_scene_preset
 from src.recorder.recorder import FrameRecorder
 from src.utils.config import Config
 from src.utils.process import kill_stale_spear_processes
-from src.utils.viz import draw_agent_arrow, draw_agent_compass
+from src.utils.viz import (
+    draw_agent_compass,
+    draw_pose_arrows,
+    intent_yaw_from_wheels,
+    motion_yaw_from_displacement,
+)
 
 
 @dataclass
@@ -99,6 +104,7 @@ def run_agent_loop(
     pending_stuck_hint: str | None = None
     arrived = False
     windows_placed = False
+    last_location: dict[str, float] | None = None
 
     print("Running. OpenCV: agent + overhead windows. Keys 1/2/3/Q (focus either window).")
     if cognition is not None:
@@ -199,7 +205,30 @@ def run_agent_loop(
                         print(f"frame {obs.frame_index}: LLM request ({goal.label})")
 
             if opts.show_opencv:
-                agent_display = draw_agent_compass(obs.rgb.copy(), obs.rotation["Yaw"])
+                motion_yaw: float | None = None
+                if last_location is not None:
+                    motion_yaw = motion_yaw_from_displacement(
+                        obs.location["X"] - last_location["X"],
+                        obs.location["Y"] - last_location["Y"],
+                    )
+                last_location = dict(obs.location)
+
+                raw_phase = cognition.plan.get("phase") if cognition is not None else None
+                nav_phase = normalize_nav_phase(raw_phase, arrived=arrived)
+                intent_yaw: float | None = None
+                if nav_phase == "approach":
+                    intent_yaw = intent_yaw_from_wheels(
+                        obs.rotation["Yaw"],
+                        action_in_effect.left,
+                        action_in_effect.right,
+                    )
+
+                agent_display = draw_agent_compass(
+                    obs.rgb.copy(),
+                    obs.rotation["Yaw"],
+                    motion_yaw,
+                    intent_yaw_deg=intent_yaw,
+                )
                 draw_agent_hud(
                     agent_display,
                     goal,
@@ -207,13 +236,19 @@ def run_agent_loop(
                     obs.frame_index,
                     llm.busy,
                     arrived=arrived,
+                    landed=land_detector.landed,
+                    nav_phase=raw_phase,
+                    frames_since_llm=frame - last_llm_frame,
+                    control_cadence=opts.control_cadence,
                 )
                 cv2.imshow("llm_agent", agent_display)
 
                 if opts.use_overhead and obs.overhead_rgb is not None:
-                    overhead_display = draw_agent_arrow(
+                    overhead_display = draw_pose_arrows(
                         obs.overhead_rgb.copy(),
                         obs.rotation["Yaw"],
+                        motion_yaw,
+                        intent_yaw_deg=intent_yaw,
                     )
                     draw_overhead_hud(
                         overhead_display,
@@ -222,6 +257,11 @@ def run_agent_loop(
                         obs.frame_index,
                         obs.location,
                         arrived=arrived,
+                        landed=land_detector.landed,
+                        llm_busy=llm.busy,
+                        nav_phase=raw_phase,
+                        frames_since_llm=frame - last_llm_frame,
+                        control_cadence=opts.control_cadence,
                     )
                     cv2.imshow("llm_overhead", overhead_display)
                     if not windows_placed:

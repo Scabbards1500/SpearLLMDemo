@@ -34,9 +34,11 @@ First-time environment setup and dev tools live under **`preparation/`** (see `p
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `LLM_PROVIDER` | `anthropic` | `anthropic` or `qwen` |
-| `LLM_MODEL` | provider default | e.g. `claude-opus-4-6`, `qwen3.6-plus` |
+| `LLM_MODEL` | provider default | e.g. `claude-opus-4-8`, `qwen3.6-plus` |
 | `ANTHROPIC_API_KEY` | — | Required when `LLM_PROVIDER=anthropic` |
+| `ANTHROPIC_BASE_URL` | `https://api.anthropic.com` | Anthropic API endpoint (proxy/mirror if needed) |
 | `DASHSCOPE_API_KEY` | — | Required when `LLM_PROVIDER=qwen` |
+| `DASHSCOPE_BASE_URL` | DashScope compatible-mode v1 | Qwen OpenAI-compatible endpoint |
 | `CONTROL_CADENCE` | `10` | LLM request interval in simulation frames |
 | `MAX_FRAMES` | `600` | Episode length (one record per frame) |
 | `TARGET_FPS` | `30` | Nominal fps for manifest `t` timestamps |
@@ -48,7 +50,7 @@ API keys are read from the environment only — never hardcoded in source. Copy 
 
 ## LLM provider (Part A)
 
-**Default:** Anthropic vision LLM via the official Python SDK (`anthropic`), model `claude-opus-4-6`.
+**Default:** Anthropic vision LLM via the official Python SDK (`anthropic`), model `claude-opus-4-8`.
 
 **Alternate:** Qwen via DashScope OpenAI-compatible API (`openai` package), set `LLM_PROVIDER=qwen`.
 

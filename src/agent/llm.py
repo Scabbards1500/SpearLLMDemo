@@ -47,13 +47,11 @@ Return ONLY one JSON object (no markdown) with this shape:
   "action": {"left": <0..1>, "right": <0..1>},
   "arrived": <bool>,
   "plan": {
-    "phase": "explore|approach|fine_tune|recover|arrived",
+    "phase": "explore|approach|arrived",
     "phase_reason": "<short>",
     "target": {
       "type": "explore_frontier|goal_object|waypoint",
-      "description": "<short>",
-      "estimated_location": [x,y,z] or null,
-      "confidence": <0..1>
+      "description": "<what you search for or move toward, egocentric — no world coordinates>"
     },
     "subgoals": [{"id":"sg1","status":"pending|active|done","text":"..."}],
     "active_subgoal_id": "sg1",
@@ -77,6 +75,8 @@ Rules:
 - When close enough to the goal, set arrived=true, action left=0 right=0, and plan.phase="arrived".
 - Never drive into a listed dead end or narrow corner with no exit.
 - If the goal is not visible, phase=explore and keep moving (do not stay at 0,0).
+- When the goal is visible and you are steering toward it, phase=approach.
+- Do not output world X/Y/Z for the target; steer via action and next_action_intent instead.
 - add_dead_ends only when the view shows a true dead end; include dead_end_id like de_003.
 - action.left/right are the wheels to execute now; match next_action_intent when possible."""
 
@@ -202,12 +202,22 @@ def _build_user_text(
 
 
 class _AnthropicBackend:
-    def __init__(self, api_key: str, model: str, *, plan_mode: bool = False) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        *,
+        plan_mode: bool = False,
+        base_url: str | None = None,
+    ) -> None:
         import anthropic
 
         self.model = model
         self.plan_mode = plan_mode
-        self._client = anthropic.Anthropic(api_key=api_key)
+        client_kwargs: dict[str, str] = {"api_key": api_key}
+        if base_url:
+            client_kwargs["base_url"] = base_url
+        self._client = anthropic.Anthropic(**client_kwargs)
 
     def decide(
         self,
@@ -319,7 +329,12 @@ class LLMController:
                 base_url=base_url or "https://dashscope.aliyuncs.com/compatible-mode/v1",
             )
         elif provider == "anthropic":
-            self._backend = _AnthropicBackend(api_key, model, plan_mode=plan_mode)
+            self._backend = _AnthropicBackend(
+                api_key,
+                model,
+                plan_mode=plan_mode,
+                base_url=base_url,
+            )
         else:
             raise ValueError(f"Unsupported LLM provider: {provider}")
 

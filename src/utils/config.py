@@ -30,6 +30,7 @@ class Config:
 
     llm_provider: str = os.getenv("LLM_PROVIDER", "anthropic").strip().lower()
     anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
+    anthropic_base_url: str = os.getenv("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
     dashscope_api_key: str = os.getenv("DASHSCOPE_API_KEY", "")
     dashscope_base_url: str = os.getenv(
         "DASHSCOPE_BASE_URL",
@@ -48,6 +49,12 @@ class Config:
         if self.llm_provider == "qwen":
             return self.dashscope_api_key
         return self.anthropic_api_key
+
+    @property
+    def llm_base_url(self) -> str:
+        if self.llm_provider == "qwen":
+            return self.dashscope_base_url
+        return self.anthropic_base_url
 
     show_opencv: bool = os.getenv("SHOW_OPENCV", "1") not in ("0", "false", "False")
     overhead_camera: bool = os.getenv("OVERHEAD_CAMERA", "1") not in ("0", "false", "False")

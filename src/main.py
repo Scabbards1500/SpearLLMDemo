@@ -98,7 +98,7 @@ def main() -> None:
         model=cfg.llm_model,
         provider=cfg.llm_provider,
         plan_mode=opts.enable_plan,
-        base_url=cfg.dashscope_base_url if cfg.llm_provider == "qwen" else None,
+        base_url=cfg.llm_base_url,
     )
     run_agent_loop(
         cfg, opts, env, llm, prompts, prompt_index,

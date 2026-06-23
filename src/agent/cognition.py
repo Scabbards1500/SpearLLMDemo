@@ -42,9 +42,7 @@ def _initial_plan(goal: GoalPrompt) -> dict[str, Any]:
         "phase_reason": "Episode start; target not yet visible.",
         "target": {
             "type": "explore_frontier",
-            "description": "Map the room and search for the nearest table.",
-            "estimated_location": None,
-            "confidence": 0.3,
+            "description": "Search the room for the nearest table.",
         },
         "subgoals": [
             {"id": "sg1", "status": "active", "text": "Leave the starting area safely"},
