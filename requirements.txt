@@ -8,6 +8,7 @@
 
 # LLM
 anthropic
+openai
 
 # Vision / I/O
 opencv-python

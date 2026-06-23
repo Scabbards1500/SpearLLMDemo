@@ -48,8 +48,9 @@ def main() -> None:
     args = parse_args()
     cfg = Config()
 
-    if not cfg.anthropic_api_key:
-        print("ERROR: Set ANTHROPIC_API_KEY in .env")
+    if not cfg.llm_api_key:
+        provider_label = "DASHSCOPE_API_KEY" if cfg.llm_provider == "qwen" else "ANTHROPIC_API_KEY"
+        print(f"ERROR: Set {provider_label} in .env (LLM_PROVIDER={cfg.llm_provider})")
         sys.exit(1)
 
     opts = build_run_options(cfg, args)
@@ -61,7 +62,10 @@ def main() -> None:
     for i, pr in enumerate(prompts):
         mark = "*" if i == prompt_index else " "
         print(f"  {mark} [{i + 1}] {pr.label}: {pr.text[:60]}...")
-    print(f"LLM every {opts.control_cadence} frames | model={cfg.llm_model} | plan={opts.enable_plan}")
+    print(
+        f"LLM every {opts.control_cadence} frames | "
+        f"provider={cfg.llm_provider} | model={cfg.llm_model} | plan={opts.enable_plan}"
+    )
 
     episode_name = args.episode or cfg.episode_name
     episode_dir = cfg.recordings_dir / episode_name
@@ -90,9 +94,11 @@ def main() -> None:
 
     env = connect_env(cfg, scene, opts.use_overhead, opts.kill_stale)
     llm = AsyncLLMController(
-        api_key=cfg.anthropic_api_key,
+        api_key=cfg.llm_api_key,
         model=cfg.llm_model,
+        provider=cfg.llm_provider,
         plan_mode=opts.enable_plan,
+        base_url=cfg.dashscope_base_url if cfg.llm_provider == "qwen" else None,
     )
     run_agent_loop(
         cfg, opts, env, llm, prompts, prompt_index,

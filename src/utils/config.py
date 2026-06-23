@@ -28,8 +28,26 @@ class Config:
     control_cadence: int = int(os.getenv("CONTROL_CADENCE", "10"))
     max_frames: int = int(os.getenv("MAX_FRAMES", "900"))
 
+    llm_provider: str = os.getenv("LLM_PROVIDER", "anthropic").strip().lower()
     anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
-    llm_model: str = os.getenv("LLM_MODEL", "claude-opus-4-6")
+    dashscope_api_key: str = os.getenv("DASHSCOPE_API_KEY", "")
+    dashscope_base_url: str = os.getenv(
+        "DASHSCOPE_BASE_URL",
+        "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    )
+    llm_model: str = os.getenv("LLM_MODEL", "")
+
+    def __post_init__(self) -> None:
+        if not self.llm_model:
+            self.llm_model = (
+                "qwen3.6-plus" if self.llm_provider == "qwen" else "claude-opus-4-6"
+            )
+
+    @property
+    def llm_api_key(self) -> str:
+        if self.llm_provider == "qwen":
+            return self.dashscope_api_key
+        return self.anthropic_api_key
 
     show_opencv: bool = os.getenv("SHOW_OPENCV", "1") not in ("0", "false", "False")
     overhead_camera: bool = os.getenv("OVERHEAD_CAMERA", "1") not in ("0", "false", "False")

@@ -167,9 +167,41 @@ def _parse_decision(text: str, *, plan_mode: bool) -> LLMDecision:
     return LLMDecision(action=action, arrived=arrived)
 
 
-class LLMController:
-    """Synchronous Anthropic vision controller."""
+def _build_user_text(
+    obs: Observation,
+    goal: GoalPrompt,
+    *,
+    last_action: WheelAction | None = None,
+    cognition_context: str | None = None,
+) -> str:
+    loc = obs.location
+    rot = obs.rotation
+    explore_hint = ""
+    if (
+        last_action is not None
+        and last_action.left < 0.05
+        and last_action.right < 0.05
+    ):
+        explore_hint = (
+            "\nYou were stopped. If the goal is NOT yet reached, explore: "
+            "drive forward slowly or turn to search. "
+            "If you ARE at the goal, set arrived=true with left=0 right=0.\n"
+        )
+    cognition_block = ""
+    if cognition_context:
+        cognition_block = f"\n{cognition_context.strip()}\n"
+    return (
+        f"Navigation goal: {goal.text.strip()}\n"
+        f"Pose: X={loc['X']:.1f} Y={loc['Y']:.1f} Z={loc['Z']:.1f} "
+        f"Yaw={rot['Yaw']:.1f}\n"
+        f"Frame: {obs.frame_index}\n"
+        f"{explore_hint}"
+        f"{cognition_block}"
+        "Return JSON only."
+    )
 
+
+class _AnthropicBackend:
     def __init__(self, api_key: str, model: str, *, plan_mode: bool = False) -> None:
         import anthropic
 
@@ -186,30 +218,8 @@ class LLMController:
         cognition_context: str | None = None,
     ) -> LLMDecision:
         b64, media_type = _encode_rgb_jpeg(obs.rgb)
-        loc = obs.location
-        rot = obs.rotation
-        explore_hint = ""
-        if (
-            last_action is not None
-            and last_action.left < 0.05
-            and last_action.right < 0.05
-        ):
-            explore_hint = (
-                "\nYou were stopped. If the goal is NOT yet reached, explore: "
-                "drive forward slowly or turn to search. "
-                "If you ARE at the goal, set arrived=true with left=0 right=0.\n"
-            )
-        cognition_block = ""
-        if cognition_context:
-            cognition_block = f"\n{cognition_context.strip()}\n"
-        user_text = (
-            f"Navigation goal: {goal.text.strip()}\n"
-            f"Pose: X={loc['X']:.1f} Y={loc['Y']:.1f} Z={loc['Z']:.1f} "
-            f"Yaw={rot['Yaw']:.1f}\n"
-            f"Frame: {obs.frame_index}\n"
-            f"{explore_hint}"
-            f"{cognition_block}"
-            "Return JSON only."
+        user_text = _build_user_text(
+            obs, goal, last_action=last_action, cognition_context=cognition_context
         )
         msg = self._client.messages.create(
             model=self.model,
@@ -237,12 +247,118 @@ class LLMController:
         return _parse_decision(text, plan_mode=self.plan_mode)
 
 
+class _QwenBackend:
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        *,
+        plan_mode: bool = False,
+        base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    ) -> None:
+        from openai import OpenAI
+
+        self.model = model
+        self.plan_mode = plan_mode
+        self._client = OpenAI(api_key=api_key, base_url=base_url)
+
+    def decide(
+        self,
+        obs: Observation,
+        goal: GoalPrompt,
+        *,
+        last_action: WheelAction | None = None,
+        cognition_context: str | None = None,
+    ) -> LLMDecision:
+        b64, media_type = _encode_rgb_jpeg(obs.rgb)
+        user_text = _build_user_text(
+            obs, goal, last_action=last_action, cognition_context=cognition_context
+        )
+        resp = self._client.chat.completions.create(
+            model=self.model,
+            max_tokens=768 if self.plan_mode else 128,
+            messages=[
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT_PLAN if self.plan_mode else SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{media_type};base64,{b64}"},
+                        },
+                        {"type": "text", "text": user_text},
+                    ],
+                },
+            ],
+        )
+        text = resp.choices[0].message.content or ""
+        return _parse_decision(text, plan_mode=self.plan_mode)
+
+
+class LLMController:
+    """Synchronous vision controller (Anthropic or Qwen via DashScope)."""
+
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        *,
+        provider: str = "anthropic",
+        plan_mode: bool = False,
+        base_url: str | None = None,
+    ) -> None:
+        provider = provider.strip().lower()
+        if provider == "qwen":
+            self._backend: _AnthropicBackend | _QwenBackend = _QwenBackend(
+                api_key,
+                model,
+                plan_mode=plan_mode,
+                base_url=base_url or "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            )
+        elif provider == "anthropic":
+            self._backend = _AnthropicBackend(api_key, model, plan_mode=plan_mode)
+        else:
+            raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    def decide(
+        self,
+        obs: Observation,
+        goal: GoalPrompt,
+        *,
+        last_action: WheelAction | None = None,
+        cognition_context: str | None = None,
+    ) -> LLMDecision:
+        return self._backend.decide(
+            obs,
+            goal,
+            last_action=last_action,
+            cognition_context=cognition_context,
+        )
+
+
 class AsyncLLMController:
     """Non-blocking wrapper: frame loop never waits on the API."""
 
-    def __init__(self, api_key: str, model: str, *, plan_mode: bool = False) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        *,
+        provider: str = "anthropic",
+        plan_mode: bool = False,
+        base_url: str | None = None,
+    ) -> None:
         self.plan_mode = plan_mode
-        self._sync = LLMController(api_key=api_key, model=model, plan_mode=plan_mode)
+        self._sync = LLMController(
+            api_key=api_key,
+            model=model,
+            provider=provider,
+            plan_mode=plan_mode,
+            base_url=base_url,
+        )
         self._lock = threading.Lock()
         self._thread: threading.Thread | None = None
         self._result: LLMDecision | None = None
