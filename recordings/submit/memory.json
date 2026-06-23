@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "episode": "episode_002",
+  "updated_at_frame": 898,
+  "updated_at_action_id": 8,
+  "summary": "Open tiled courtyard surrounded by brick walls; an elevated checkered sphere and white structures sit ahead-right. No clearly reachable table in current view; exploring forward.",
+  "places": [],
+  "dead_ends": [
+    {
+      "dead_end_id": "de_001",
+      "location": [
+        403.4243933942317,
+        580.0000037340965,
+        19.991501902467096
+      ],
+      "yaw_deg": 146.00000000000185,
+      "discovered_frame": 347,
+      "reason": "Robot barely moved in the last 30 frames while driving. Treat current heading as a dead end; turn away and explore elsewhere.",
+      "avoid_until_frame": null
+    }
+  ],
+  "decision_log": [
+    {
+      "action_id": 0,
+      "frame_idx": 77,
+      "location": [
+        180.0,
+        420.00003502366826,
+        19.999953103100772
+      ],
+      "yaw_deg": 0.0,
+      "action": {
+        "left": 0.3,
+        "right": 0.4
+      },
+      "observation": "Large sphere obstacle ahead-center, brick walls on right and back, curved white wall and an opening on the left.",
+      "outcome": "Robot moves forward while curving left to explore the open area and avoid the central sphere."
+    },
+    {
+      "action_id": 1,
+      "frame_idx": 153,
+      "location": [
+        234.45515636006405,
+        426.08822678646544,
+        19.99995324346553
+      ],
+      "yaw_deg": 19.00000000000022,
+      "action": {
+        "left": 0.3,
+        "right": 0.5
+      },
+      "observation": "Large textured sphere directly ahead in center of checkered floor, brick walls surrounding, window on right, curved light wall and gap on the left.",
+      "outcome": "Robot turns gently left, moving around the sphere toward unexplored left area."
+    },
+    {
+      "action_id": 2,
+      "frame_idx": 227,
+      "location": [
+        372.48374845620833,
+        472.71815688721705,
+        19.99019592347139
+      ],
+      "yaw_deg": 56.00000000000106,
+      "action": {
+        "left": 0.2,
+        "right": 0.5
+      },
+      "observation": "Brick walls meeting in a corner, a large patterned sphere center-left, a window on the right wall, checkered floor. No table visible.",
+      "outcome": "Robot rotates left away from the corner, revealing more of the room to search for a table."
+    },
+    {
+      "action_id": 3,
+      "frame_idx": 313,
+      "location": [
+        407.840412820314,
+        580.0000043213549,
+        19.990895553550054
+      ],
+      "yaw_deg": 120.50000000000169,
+      "action": {
+        "left": 0.2,
+        "right": 0.5
+      },
+      "observation": "Brick walls form a corner ahead, large window upper-right, white curtain hanging center, checkered floor below. No table in view.",
+      "outcome": "Robot rotates left, revealing more of the room to search for a table."
+    },
+    {
+      "action_id": 4,
+      "frame_idx": 424,
+      "location": [
+        334.2805824392528,
+        578.5679075961051,
+        19.999910541669333
+      ],
+      "yaw_deg": -156.24999999999818,
+      "action": {
+        "left": 0.0,
+        "right": 0.4
+      },
+      "observation": "Close-up of brick wall and a window frame with sky beyond; no floor or table visible, indicating I am near a wall.",
+      "outcome": "Robot rotates in place to face away from the wall and toward open room area."
+    },
+    {
+      "action_id": 5,
+      "frame_idx": 522,
+      "location": [
+        160.5584982467611,
+        527.8875524629218,
+        19.999913157845242
+      ],
+      "yaw_deg": -58.2499999999984,
+      "action": {
+        "left": 0.6,
+        "right": 0.4
+      },
+      "observation": "Open checkered-tile area ahead; two tables with yellow chairs in center-right, brick wall on the left.",
+      "outcome": "Robot moves forward and turns slightly right, closing distance toward the nearest table."
+    },
+    {
+      "action_id": 6,
+      "frame_idx": 612,
+      "location": [
+        32.40455120334502,
+        340.7254112599188,
+        19.99998547751227
+      ],
+      "yaw_deg": -103.24999999999861,
+      "action": {
+        "left": 0.3,
+        "right": 0.5
+      },
+      "observation": "Central silver cylinder ahead, big golf-ball-textured sphere on right, brick walls bordering the courtyard, smaller sphere on distant left.",
+      "outcome": "Robot turns gently left, moving past the cylinder while searching for a table."
+    },
+    {
+      "action_id": 7,
+      "frame_idx": 687,
+      "location": [
+        -70.91189155624839,
+        44.483045681107036,
+        19.99993609054586
+      ],
+      "yaw_deg": -65.74999999999885,
+      "action": {
+        "left": 0.3,
+        "right": 0.5
+      },
+      "observation": "Pedestal table with yellow items on the left, plus white furniture nearby; brick walls behind.",
+      "outcome": "Robot turns left and moves closer to the nearest table."
+    },
+    {
+      "action_id": 8,
+      "frame_idx": 898,
+      "location": [
+        37.18793663614948,
+        -519.4552524673846,
+        19.999993105416994
+      ],
+      "yaw_deg": 39.75000000000052,
+      "action": {
+        "left": 0.4,
+        "right": 0.5
+      },
+      "observation": "Mostly empty tiled floor in front; brick walls on left and right, white slanted structure and checkered sphere elevated ahead-right. No table at floor level visible.",
+      "outcome": "Move forward and slightly left across the open floor to search for a table."
+    }
+  ],
+  "constraints": [
+    "Avoid colliding with the central sphere and brick walls",
+    "Avoid colliding with brick walls and the central sphere",
+    "Avoid colliding with brick walls and furniture",
+    "Avoid colliding with the central cylinder, large sphere, and brick walls",
+    "Avoid colliding with white furniture and brick walls while approaching the table",
+    "Avoid colliding with brick walls and the elevated checkered sphere structure"
+  ]
+}

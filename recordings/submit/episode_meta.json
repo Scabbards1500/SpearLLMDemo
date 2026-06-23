@@ -1,0 +1,19 @@
+{
+  "created_at": "2026-06-23T08:52:49.778248+00:00",
+  "scene": "debug_house",
+  "level": "/Game/SPEAR/Scenes/debug_0000/Maps/debug_0000.debug_0000",
+  "spawn": {
+    "X": 180.0,
+    "Y": 420.0,
+    "Z": 110.0
+  },
+  "goal": {
+    "id": "nearest_table",
+    "label": "Nearest table",
+    "text": "You are a sphere robot in an indoor scene. Your goal is the nearest table to your current position. If you see multiple tables, go to the closest one in front of you or the one you can reach soonest \u2014 not a far table. If no table is visible, explore the room: drive forward slowly and turn at corners until a table appears. When you see a table, steer toward the nearest one. Avoid walls and furniture. When close to the table, stop and set arrived=true in your JSON response (left=0, right=0)."
+  },
+  "target_fps": 30.0,
+  "control_cadence": 5,
+  "llm_model": "claude-opus-4-8",
+  "plan_enabled": true
+}

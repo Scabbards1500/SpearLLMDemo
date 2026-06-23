@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "goal_prompt_id": "nearest_table",
+  "goal_text": "You are a sphere robot in an indoor scene. Your goal is the nearest table to your current position. If you see multiple tables, go to the closest one in front of you or the one you can reach soonest — not a far table. If no table is visible, explore the room: drive forward slowly and turn at corners until a table appears. When you see a table, steer toward the nearest one. Avoid walls and furniture. When close to the table, stop and set arrived=true in your JSON response (left=0, right=0).",
+  "updated_at_frame": 898,
+  "updated_at_action_id": 8,
+  "phase": "explore",
+  "phase_reason": "No clear table is visible; mostly open tiled floor with brick walls and a checkered sphere structure ahead.",
+  "target": {
+    "type": "explore_frontier",
+    "description": "Open tiled floor extending forward; scan for a table while avoiding the brick walls and the elevated checkered sphere ahead-right."
+  },
+  "subgoals": [
+    {
+      "id": "sg1",
+      "status": "done",
+      "text": "Enter the courtyard"
+    },
+    {
+      "id": "sg2",
+      "status": "done",
+      "text": "Scan environment for tables"
+    },
+    {
+      "id": "sg3",
+      "status": "active",
+      "text": "Explore forward to locate the nearest table"
+    }
+  ],
+  "active_subgoal_id": "sg3",
+  "next_action_intent": {
+    "left": 0.4,
+    "right": 0.5,
+    "rationale": "Drive forward into the open floor while gently turning left away from the wall and elevated sphere to find a reachable table."
+  },
+  "avoid": [],
+  "replan_triggers": [
+    "stuck_for_30_frames",
+    "goal_visible",
+    "prompt_changed"
+  ]
+}
